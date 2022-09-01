@@ -10,15 +10,16 @@ public class BarrierRMI extends Barrier {
 
 	RemoteBarrier stub;
 
-	public BarrierRMI(String host, int port) {
+	public BarrierRMI(String host, int port, int barrierNumber) {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new SecurityManager());
 		}
 
 		try {
 			Registry registry = LocateRegistry.getRegistry(host, port);
+			String name = "/barrier" + barrierNumber;
 
-			stub = (RemoteBarrier) registry.lookup("/barrier");
+			stub = (RemoteBarrier) registry.lookup(name);
 
 		} catch (Exception e) {
 			e.printStackTrace();
