@@ -19,7 +19,7 @@ public class Combiner extends Thread {
 	@Override
 	public void run() {
 		String line = null;
-		while (bufferIn.get() != null) {
+		while ((line=bufferIn.get()) != null) {
 			String[] data = line.split("-");
 			String director = data[0];
 			double rating = Double.parseDouble(data[1]);
@@ -37,6 +37,8 @@ public class Combiner extends Thread {
 			bufferOut.put(line);
 		}
 
+		System.out.println("Combiner done");
+		
 		bufferOut.put(null);
 	}
 }

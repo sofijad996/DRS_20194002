@@ -30,8 +30,12 @@ public class ConsumerTitleRatings extends Thread {
 		}
 
 		barrier.sync();
+		
+
+		System.out.println("Consumer TitleRatings done");
 
 		bufferOut.put(null);
+		
 
 	}
 

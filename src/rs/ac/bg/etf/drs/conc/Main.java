@@ -4,8 +4,8 @@ public class Main {
 
 	public static void main(String[] args) {
 		final int C = 5;
-		final String titleCrewFile = "title_crew.tsv";
-		final String titleRatingsFile = "title_ratings.tsv";
+		final String titleCrewFile = "title_crew - 30k.tsv";
+		final String titleRatingsFile = "title_ratings - 30k.tsv";
 
 		Buffer<String> buffer1 = new Buffer<String>();
 		Buffer<String> buffer2 = new Buffer<String>();

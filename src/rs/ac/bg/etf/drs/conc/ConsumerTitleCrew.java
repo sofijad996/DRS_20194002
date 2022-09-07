@@ -26,6 +26,7 @@ public class ConsumerTitleCrew extends Thread {
 			}
 
 		}
+		
 		barrier.sync();
 
 		for (String titleDirector : titleDirectors) {
@@ -35,13 +36,20 @@ public class ConsumerTitleCrew extends Thread {
 		barrier.sync();
 
 		bufferOut.put(null);
+		
+		System.out.println("Consumer TitleCrew done");
+	
 
 	}
 
 	private String[] parseLine(String line) {
 		String[] data = line.split("\t");
 		String nconst = data[0];
-		String[] directors = data[1].split(",");
+		String[] directors = new String[0];
+		
+		if (!("\\N".equals(data[1]))) {
+			directors = data[1].split(",");
+		}
 
 		String result[] = new String[directors.length];
 		int i = 0;

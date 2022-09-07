@@ -1,5 +1,7 @@
 package rs.ac.bg.etf.drs.conc;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,19 +44,20 @@ public class Consumer extends Thread {
 			}
 			String[] data = lineTitleRatings.split("-");
 			String nconst = data[0];
-			Double rating = Double.parseDouble(data[1]);
+			BigDecimal rating = (new BigDecimal(Double.parseDouble(data[1]))).setScale(2, RoundingMode.HALF_UP);
 
-			for (Film f : films) {
-				if (nconst == f.nconst) {
-					f.setRating(rating);
+			for (Film f : films) {				
+				if (nconst.equals(f.getTitle())) {
+					if (!directorRating.containsKey(f.getDirector())) {
+						directorRating.put(f.getDirector(), rating.doubleValue());
+					} else {
+						double currentAverage = directorRating.get(f.getDirector());
+						double averageRatingDouble = (currentAverage + rating.doubleValue()) / 2;
+						BigDecimal averageRating = (new BigDecimal(averageRatingDouble).setScale(2, RoundingMode.HALF_UP));
+						directorRating.put(f.getDirector(), averageRating.doubleValue());
+					}
 				}
-
-				if (!directorRating.containsKey(f.director)) {
-					directorRating.put(f.director, f.rating);
-				} else {
-					double averageRating = (directorRating.get(f.director) + f.rating) / 2;
-					directorRating.put(f.director, averageRating);
-				}
+				
 			}
 
 		}
@@ -67,6 +70,8 @@ public class Consumer extends Thread {
 		}
 
 		barrier.sync();
+		
+		System.out.println("Consumer done");
 
 		bufferOut.put(null);
 	}
@@ -74,7 +79,6 @@ public class Consumer extends Thread {
 	public class Film {
 		String nconst;
 		String director;
-		Double rating;
 
 		public Film(String film) {
 			String[] data = film.split("-");
@@ -82,7 +86,6 @@ public class Consumer extends Thread {
 			this.nconst = nconst;
 			String director = data[1];
 			this.director = director;
-			this.rating = 0.0;
 		}
 
 		public Film() {
@@ -91,9 +94,9 @@ public class Consumer extends Thread {
 		public String getTitle() {
 			return nconst;
 		}
-
-		public void setRating(Double rating) {
-			this.rating = rating;
+		
+		public String getDirector() {
+			return director;
 		}
 	}
 

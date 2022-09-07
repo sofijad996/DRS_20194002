@@ -28,6 +28,8 @@ public class Producer extends Thread {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		System.out.println("Producer done");
 
 	}
 
