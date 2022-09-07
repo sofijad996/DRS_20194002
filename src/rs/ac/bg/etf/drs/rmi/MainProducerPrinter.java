@@ -7,8 +7,8 @@ import rs.ac.bg.etf.drs.conc.Producer;
 public class MainProducerPrinter {
 
 	public static void main(String[] args) {
-		final String titleCrewFile = "title_crew.tsv";
-		final String titleRatingsFile = "title_ratings.tsv";
+		final String titleCrewFile = "title_crew - 30k.tsv";
+		final String titleRatingsFile = "title_ratings - 30k.tsv";
 		
 		Buffer<String> buffer1 = new BufferRMI<String>("localhost", 4003, 1);
 		Buffer<String> buffer2 = new BufferRMI<String>("localhost", 4003, 2);
