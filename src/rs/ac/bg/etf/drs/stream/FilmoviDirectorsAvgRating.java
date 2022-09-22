@@ -1,13 +1,10 @@
 package rs.ac.bg.etf.drs.stream;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,38 +19,45 @@ public class FilmoviDirectorsAvgRating {
 		String filepathTitleCrew = "title_crew.tsv";
 		String filepathTitleRatings = "title_ratings.tsv";
 		String outputFileName = "outputStream.tsv";
+		
+		long start = System.currentTimeMillis();
+		
+		Stream<String> titleRatingsStream = Files.lines(Path.of(filepathTitleRatings)).parallel();
+		Map<String, Double> titleRatings = titleRatingsStream
+				.skip(1)
+				.map(s -> new TitleRatings(s))
+				.collect(Collectors.toMap(TitleRatings::getTitle, TitleRatings::getRating));
+		
+		System.out.println("Done processing titleRatings");
 
 		Stream<String> titleCrewStream = Files.lines(Path.of(filepathTitleCrew)).parallel();
-		List<DirectorRating> titleDirectors = titleCrewStream
+		Map<String, Double> directorsRating = titleCrewStream
 				.skip(1)
 				.map(s -> new TitleCrew(s))
 				.flatMap(s -> s.getFilmDirectors().stream())
-				.map(s -> new DirectorRating(s))
-				.collect(Collectors.toList());
-		System.out.println("Done processing titleCrew");
-
-		Stream<String> titleRatingsStream = Files.lines(Path.of(filepathTitleRatings)).parallel();
-		titleRatingsStream
-				.skip(1)
-				.map(s -> new TitleRatings(s))
-				//.filter(s -> titleDirectors.stream().anyMatch(td -> td.tconst.equals(s.tconst)))
-				.forEach(s -> {
-					titleDirectors.stream()
-					.forEach(td -> {
-						if (td.getTitle().equals(s.getTitle())) {
-							td.setRating(s.getRating());
-						}
-					});
-				});
+				.map(s -> {
+					String tconst = s.split("-")[0];
+					String director = s.split("-")[1];
+					if (titleRatings.get(tconst) != null) {
+						Double rating = titleRatings.get(tconst);
+						String directorRating = director + "-"  + rating;
+						return directorRating;
+					} else {
+						return director + "-" + "null";
+					}
+				})
+				.filter(s -> !s.substring(s.length() - 4).equals("null"))
+				.collect(Collectors.groupingByConcurrent(s -> s.split("-")[0], Collectors.averagingDouble(s -> Double.parseDouble(s.split("-")[1]))));
 		
-		System.out.println("Done processing titleRatings");
-			
-		Map<String, Double> directorsRating = titleDirectors.stream()
-				.collect(Collectors.groupingByConcurrent(DirectorRating::getDirectorName, Collectors.averagingDouble(DirectorRating::getRating)));
-
-		System.out.println("Writing to file...");
+		System.out.println("Done processing titleCrew");	
 		
+		long end = System.currentTimeMillis();
+		long duration = end - start;
+		System.out.println("Vreme izvrsavanja je: " + duration);
+
 		try {
+			System.out.println("Writing to file...");
+			
 			BufferedWriter bf = new BufferedWriter(new FileWriter(outputFileName));
 
 	        for(Entry<String, Double> entry : directorsRating.entrySet()) {
@@ -63,11 +67,11 @@ public class FilmoviDirectorsAvgRating {
 	        bf.flush();	 
 	        bf.close();
 	        
+	        System.out.println("Done writing to file!");	
+	        
 	    } catch (IOException e) {
 	        e.printStackTrace();
-	    } 
-		
-		System.out.println("Done writing to file!");		
+	    } 			
 
 	}
 
@@ -105,13 +109,6 @@ public class FilmoviDirectorsAvgRating {
 			this.rating = Double.parseDouble(elements[1]);
 		}
 
-		List<String> getFilmRatings() {
-			List<String> result = new LinkedList<>();
-			String filmRating = tconst + "-" + rating;
-			result.add(filmRating);
-			return result;
-		}
-
 		Double getRating() {
 			return rating;
 		}
@@ -122,37 +119,4 @@ public class FilmoviDirectorsAvgRating {
 
 	}
 
-	public static class DirectorRating {
-		public String tconst;
-		public Double rating;
-		public String director;
-
-		public DirectorRating(String line) {
-			String[] elements = line.split("-");
-			this.tconst = elements[0];
-			this.director = elements[1];
-			this.rating = 5.0;
-		}
-
-		String getDirectorName() {
-			return director;
-		}
-
-		String getTitle() {
-			return this.tconst;
-		}
-
-		Double getRating() {
-			return rating;
-		}
-
-		void setRating(double rating) {
-			this.rating = rating;
-		}
-
-		@Override
-		public String toString() {
-			return tconst + " " + director + " " + rating;
-		}
-	}
 }
