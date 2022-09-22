@@ -1,10 +1,6 @@
 package rs.ac.bg.etf.drs.conc;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -13,30 +9,24 @@ public class Consumer extends Thread {
 	Buffer<String> bufferTitleCrew, bufferTitleRatings;
 	Buffer<String> bufferOut;
 	Barrier barrier;
-	List<Film> films;
-	Map<String, Double> directorRating;
+	Map<String, Double> directorRatings;
+	Map<String, Double> titleRatings;
+	Map<String, String> directorRatingSums;
 
 	public Consumer(Buffer bufferTitleCrew, Buffer bufferTitleRatings, Barrier barrier, Buffer bufferOut) {
 		this.bufferTitleCrew = bufferTitleCrew;
 		this.bufferTitleRatings = bufferTitleRatings;
 		this.barrier = barrier;
 		this.bufferOut = bufferOut;
-		this.films = new ArrayList<>();
-		this.directorRating = new HashMap<String, Double>();
+		this.directorRatings = new HashMap<String, Double>();
+		this.titleRatings = new HashMap<String, Double>(); 
+		this.directorRatingSums = new HashMap<String, String>();
 	}
 
 	@Override
 	public void run() {
 		String line = null;
-		while (true) {
-			String lineTitleCrew = bufferTitleCrew.get();
-			if (lineTitleCrew == null) {
-				break;
-			}
-			Film film = new Film(lineTitleCrew);
-			films.add(film);
-		}
-
+		
 		while (true) {
 			String lineTitleRatings = bufferTitleRatings.get();
 			if (lineTitleRatings == null) {
@@ -44,27 +34,46 @@ public class Consumer extends Thread {
 			}
 			String[] data = lineTitleRatings.split("-");
 			String nconst = data[0];
-			BigDecimal rating = (new BigDecimal(Double.parseDouble(data[1]))).setScale(2, RoundingMode.HALF_UP);
-
-			for (Film f : films) {				
-				if (nconst.equals(f.getTitle())) {
-					if (!directorRating.containsKey(f.getDirector())) {
-						directorRating.put(f.getDirector(), rating.doubleValue());
-					} else {
-						double currentAverage = directorRating.get(f.getDirector());
-						double averageRatingDouble = (currentAverage + rating.doubleValue()) / 2;
-						BigDecimal averageRating = (new BigDecimal(averageRatingDouble).setScale(2, RoundingMode.HALF_UP));
-						directorRating.put(f.getDirector(), averageRating.doubleValue());
-					}
-				}
-				
-			}
-
+			double rating = Double.parseDouble(data[1]);
+			
+			titleRatings.put(nconst, rating);
 		}
+			
+		while (true) {
+			String lineTitleCrew = bufferTitleCrew.get();
+			if (lineTitleCrew == null) {
+				break;
+			}
+			String[] data = lineTitleCrew.split("-");
+			String nconst = data[0];
+			String director = data[1];	
+			
+			if (titleRatings.get(nconst) != null) { 
+				directorRatings.put(director + "-" + nconst, titleRatings.get(nconst));
+			}
+			
+		}
+		
+		for (Entry<String, Double> directorRating : directorRatings.entrySet()) {	
+			String currDirector = directorRating.getKey().split("-")[0];
+			double currRating = directorRating.getValue();					
+			
+			if (!directorRatingSums.containsKey(currDirector)) {
+				directorRatingSums.put(currDirector, currRating + "-" + 1);				
+				
+			} else {
+				String[] value = directorRatingSums.get(currDirector).split("-");
+				double sum = Double.parseDouble(value[0]) + currRating;
+				int cnt = Integer.parseInt(value[1]) + 1;
+				
+				directorRatingSums.replace(currDirector, sum + "-" + cnt);
+			}			
+		}		
+		
 
 		barrier.sync();
 
-		for (Entry<String, Double> entry : directorRating.entrySet()) {
+		for (Entry<String, String> entry : directorRatingSums.entrySet()) {
 			line = entry.getKey() + "-" + entry.getValue();
 			bufferOut.put(line);
 		}
@@ -75,29 +84,4 @@ public class Consumer extends Thread {
 
 		bufferOut.put(null);
 	}
-
-	public class Film {
-		String nconst;
-		String director;
-
-		public Film(String film) {
-			String[] data = film.split("-");
-			String nconst = data[0];
-			this.nconst = nconst;
-			String director = data[1];
-			this.director = director;
-		}
-
-		public Film() {
-		}
-
-		public String getTitle() {
-			return nconst;
-		}
-		
-		public String getDirector() {
-			return director;
-		}
-	}
-
 }
